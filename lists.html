@@ -1,0 +1,95 @@
+<html>
+    <body>
+        <script>
+            window.onload = function() {
+                populateSelects();
+            };
+            function populateSelects() {
+                populateAvailable();
+                populateSelected();
+            }
+            function populateAvailable() {
+                const availableList = document.getElementById('available');
+                let availableValues = document.getElementById('availableValues').value.split(',');
+                const selectedValues = document.getElementById('selectedValues').value.split(',');
+                availableValues = availableValues.filter((x) => {return selectedValues.indexOf(x) === -1});
+                availableList.innerHTML = "";
+                for (let i = 0; i < availableValues.length; i++) {
+                    const values = availableValues[i].split(';');
+                    let opt = document.createElement('option');
+                    opt.value = values[0];
+                    opt.innerHTML = values[1];
+                    availableList.append(opt);
+                }
+            }
+            function populateSelected() {
+                const selectedList = document.getElementById('selected');
+                selectedList.innerHTML = "";
+                if (document.getElementById('selectedValues').value.length > 0) {
+                    const selectedValues = document.getElementById('selectedValues').value.split(',');
+                    for (let i = 0; i < selectedValues.length; i++) {
+                        const values = selectedValues[i].split(';');
+                        let opt = document.createElement('option');
+                        opt.value = values[0];
+                        opt.innerHTML = values[1];
+                        selectedList.append(opt);
+                    }
+                }
+            }
+            function moveAvailable() {
+                const options = document.getElementById('available').selectedOptions;
+                const selected = Array.from(options).map(({ value }) => value);
+                const selectedValues = document.getElementById('selectedValues');
+                const availableValues = document.getElementById('availableValues').value.split(',');
+                for (let i = 0; i < availableValues.length; i++) {
+                    const opt = availableValues[i].split(';');
+                    if (selected.includes(opt[0])) {
+                        selectedValues.value += (selectedValues.value.length > 0 ? ',' : '') + availableValues[i];
+                    }
+                }
+                populateSelects();
+            }
+            function moveSelected() {
+                const options = document.getElementById('selected').selectedOptions;
+                const selected = Array.from(options).map(({ value }) => value);
+                const selectedValues = document.getElementById('selectedValues').value.split(',');
+                let newValues = '';
+                for (let i = 0; i < selectedValues.length; i++) {
+                    const opt = selectedValues[i].split(';');
+                    if (!selected.includes(opt[0])) {
+                        newValues += (newValues.length > 0 ? ',' : '') + selectedValues[i];
+                    }
+                }
+                document.getElementById('selectedValues').value = newValues;
+                populateSelects();
+            }
+            function moveAll() {
+                document.getElementById('selectedValues').value = document.getElementById('availableValues').value;
+                populateSelects();
+            }
+            function removeAll() {
+                document.getElementById('selectedValues').value = '';
+                populateSelects();
+            }
+        </script>
+
+        <select multiple id="available" style="min-width:120px;height:200px"></select>
+        <select multiple id="selected" style="min-width:120px;height:200px"></select>
+
+        <div>
+            <button type="button" onclick="moveAvailable()">Move Available</button>
+        </div>
+        <div>
+            <button type="button" onclick="moveSelected()">Move Selected</button>
+        </div>
+        <div>
+            <button type="button" onclick="moveAll()">Move All</button>
+        </div>
+        <div>
+            <button type="button" onclick="removeAll()">Remove All</button>
+        </div>
+
+        <input type="hidden" id="availableValues" value="1;Apple,2;Apricot,3;Banana,4;Grape,5;Lemon,6;Mango,7;Pear,8;Pineapple,9;Strawberry" />
+        <input type="hidden" id="selectedValues" value="1;Apple,6;Mango,8;Pineapple" />
+    </body>
+</html>
