@@ -1,0 +1,95 @@
+<html>
+    <body>
+        <style>
+            .pagination-link {
+                text-decoration: none;
+                color: #0000ee;
+            }
+            .pagination-current {
+                font-weight: bold;
+                text-decoration: underline;
+            }
+        </style>
+        <script>
+            window.onload = function() {
+                populatePagination(1, 20);
+            };
+            function pagination(currentPage, pageCount) {
+                let delta = 5;
+                const separate = (a, b) => [a, ...({
+                    0: [],
+                    1: [b],
+                    2: [a + 1, b],
+                }[b - a] || ['.', b])]
+                return Array(delta * 2 + 1)
+                    .fill()
+                    .map((_, index) => currentPage - delta + index)
+                    .filter(page => 0 < page && page <= pageCount)
+                    .flatMap((page, index, { length }) => {
+                    if (!index) return separate(1, page)
+                    if (index === length - 1) return separate(page, pageCount)
+                    return [page]
+                })
+            }     
+            function populatePagination(currentPage, pageCount) {
+                let myPagination = document.getElementById("myPagination");
+                myPagination.innerHTML = "";
+                let pages = pagination(currentPage, pageCount);
+                for (let i = 0; i < pages.length; i++) {
+                    if (pages[i] !== '.') {
+                        if (pages[i] !== currentPage) {
+                            myPagination.appendChild(getLink(pages[i]));
+                            myPagination.appendChild(getSpace());
+                        }
+                        else {
+                            myPagination.appendChild(getEmptyLink(pages[i]));
+                            myPagination.appendChild(getSpace());
+                        }
+                    }
+                    else { 
+                        myPagination.appendChild(getSelect(pages[i-1]+1, pages[i+1]-1));
+                        myPagination.appendChild(getSpace());
+                    }
+                }
+            }
+            function getLink(page) {
+                let link = document.createElement("a");
+                link.setAttribute("href","#");
+                link.setAttribute("onclick", `navigate(${page})`);
+                link.setAttribute("class", "pagination-link");
+                link.innerHTML = `${page}`;
+                return link;
+            }
+            function getEmptyLink(page) {
+                let link = document.createElement("span");
+                link.setAttribute("class", "pagination-current");
+                link.innerHTML = `${page}`;
+                return link;
+            }
+            function getSpace() {
+                let space = document.createElement("span");
+                space.innerHTML = "&nbsp;";
+                return space;
+            }
+            function getSelect(minPage, maxPage) {
+                let sel = document.createElement("select");
+                sel.setAttribute("onchange", "navigate(this.value)");
+                let optDefault = document.createElement("option");
+                optDefault.value = 0;
+                optDefault.innerHTML = "...";
+                sel.appendChild(optDefault);
+                for (let i = minPage; i <= maxPage; i++) {
+                    let opt = document.createElement("option");
+                    opt.value = i;
+                    opt.innerHTML = i;
+                    sel.appendChild(opt);
+                }
+                return sel;
+            }
+            function navigate(page) {
+                populatePagination(parseInt(page), 20);
+            }
+        </script>
+        <div id="myPagination"></div>
+    </body>
+</html>
