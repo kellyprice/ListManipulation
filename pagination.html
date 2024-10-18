@@ -1,7 +1,7 @@
 @*
 MINIMAL USAGE IN MVC
 <script>
-    function pageSelected() {
+    function paginationPageSelected() {
         // submit form or some other action
     }
 </script>
@@ -32,10 +32,10 @@ Ellipses are replaced by a drop down list when output.
 
 <script>
     window.onload = function() {
-        if (checkPage())
-            populatePagination();
+        if (pagination_checkPage())
+            pagination_populate();
     };
-    function checkPage() {
+    function pagination_checkPage() {
         const myPagination = document.getElementById("myPagination");
         const currentPage = document.getElementById("CurrentPage");
         const pageCount = document.getElementById("PageCount");
@@ -47,11 +47,11 @@ Ellipses are replaced by a drop down list when output.
         else if (parseInt(currentPage.value) < 1) err = "Unable to use pagination as the value of 'CurrentPage' is less than 1.";
         else if (!Number.isInteger(parseInt(pageCount.value))) err = "Unable to use pagination as the value of 'PageCount' is not an integer.";
         else if (delta && !Number.isInteger(parseInt(delta.value))) err = "Unable to use pagination as the value of 'Delta' is not an integer.";
-        else if (!window.pageSelected) err = "Unable to use pagination as the JavaScript method 'pageSelected' does not exist."
+        else if (!window.paginationPageSelected) err = "Unable to use pagination as the JavaScript method 'pageSelected' does not exist."
         myPagination.innerHTML = err;
         return err.length === 0;
     }
-    function pagination(currentPage, pageCount) {
+    function pagination_get(currentPage, pageCount) {
         const delta = document.getElementById("Delta") ? parseInt(document.getElementById("Delta").value) : 5;
         const separate = (a, b) => [a, ...({
             0: [],
@@ -68,38 +68,38 @@ Ellipses are replaced by a drop down list when output.
             return [page]
         })
     }
-    function populatePagination() {
+    function pagination_populate() {
         const currentPage = parseInt(document.getElementById("CurrentPage").value);
         const pageCount = parseInt(document.getElementById("PageCount").value);
         let myPagination = document.getElementById("myPagination");
         myPagination.innerHTML = "";
-        let pages = pagination(currentPage, pageCount);
+        let pages = pagination_get(currentPage, pageCount);
         for (let i = 0; i < pages.length; i++) {
             if (pages[i] !== '.') {
                 if (pages[i] !== currentPage)
-                    myPagination.appendChild(getLink(pages[i]));
+                    myPagination.appendChild(pagination_getLink(pages[i]));
                 else
-                    myPagination.appendChild(getEmptyLink(pages[i]));
+                    myPagination.appendChild(pagination_getEmptyLink(pages[i]));
             }
             else
-                myPagination.appendChild(getSelect(pages[i-1]+1, pages[i+1]-1));
+                myPagination.appendChild(pagination_getSelect(pages[i-1]+1, pages[i+1]-1));
         }
     }
-    function getLink(page) {
+    function pagination_getLink(page) {
         let link = document.createElement("a");
         link.setAttribute("href","#");
-        link.setAttribute("onclick", `navigateToPage(${page})`);
+        link.setAttribute("onclick", `pagination_navigate(${page})`);
         link.setAttribute("style", "padding:0 3px;text-decoration:none;color:#0000ee;");
         link.innerHTML = `${page}`;
         return link;
     }
-    function getEmptyLink(page) {
+    function pagination_getEmptyLink(page) {
         let link = document.createElement("span");
         link.setAttribute("style", "padding:0 3px;border:1px solid #000;");
         link.innerHTML = `${page}`;
         return link;
     }
-    function getSelect(minPage, maxPage) {
+    function pagination_getSelect(minPage, maxPage) {
         let sel = document.createElement("select");
         sel.setAttribute("onchange", "navigate(this.value)");
         sel.setAttribute("style", "margin:0 3px;");
@@ -115,10 +115,10 @@ Ellipses are replaced by a drop down list when output.
         }
         return sel;
     }
-    function navigateToPage(page) {
+    function pagination_navigate(page) {
         document.getElementById("CurrentPage").value = page;
-        populatePagination();
-        pageSelected();
+        pagination_populate();
+        paginationPageSelected();
     }
 </script>
 <div id="myPagination"></div>
