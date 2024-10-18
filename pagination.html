@@ -88,7 +88,7 @@ Ellipses are replaced by a drop down list when output.
     function getLink(page) {
         let link = document.createElement("a");
         link.setAttribute("href","#");
-        link.setAttribute("onclick", `navigate(${page})`);
+        link.setAttribute("onclick", `navigateToPage(${page})`);
         link.setAttribute("style", "padding:0 3px;text-decoration:none;color:#0000ee;");
         link.innerHTML = `${page}`;
         return link;
@@ -115,7 +115,7 @@ Ellipses are replaced by a drop down list when output.
         }
         return sel;
     }
-    function navigate(page) {
+    function navigateToPage(page) {
         document.getElementById("CurrentPage").value = page;
         populatePagination();
         pageSelected();
