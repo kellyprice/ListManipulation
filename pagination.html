@@ -101,7 +101,7 @@ Ellipses are replaced by a drop down list when output.
     }
     function pagination_getSelect(minPage, maxPage) {
         let sel = document.createElement("select");
-        sel.setAttribute("onchange", "navigate(this.value)");
+        sel.setAttribute("onchange", "pagination_navigate(this.value)");
         sel.setAttribute("style", "margin:0 3px;");
         let optDefault = document.createElement("option");
         optDefault.value = 0;
