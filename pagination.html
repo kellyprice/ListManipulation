@@ -1,3 +1,35 @@
+@*
+MINIMAL USAGE IN MVC 
+<script>
+    function pageSelected() {
+        // submit form or some other action
+    }
+</script>
+
+<partial name="~/Views/Shared/_Pagination.cshtml" />
+
+@Html.HiddenFor(x => x.CurrentPage)
+@Html.HiddenFor(x => x.PageCount)
+
+<input id="Delta" type="hidden" value="10" />
+<!--
+The field Delta is optional. Delta is the number of pages
+shown before and after the current page. The default value 
+is 5 Below is a number of examples of pagination output 
+where PageCount=20, Delta=5:
+
+CurrentPage=1: [1,2,3,4,5,6,...,20]
+CurrentPage=4: [1,2,3,4,5,6,7,8,9,...,20]
+CurrentPage=11: [1,...,6,7,8,9,10,11,12,13,14,15,16,...,20]
+
+If you wish to show all pages then set the value of Delta to a
+high value.
+CurrentPage=1,PageCount=20,Delta=20: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+
+Ellipses are replaced by a drop down list when output,
+--> 
+*@
+
 <html>
     <body>
         <script>
