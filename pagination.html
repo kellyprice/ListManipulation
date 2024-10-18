@@ -8,12 +8,12 @@ MINIMAL USAGE IN MVC
 
 <partial name="~/Views/Shared/_Pagination.cshtml" />
 
-@Html.HiddenFor(x => x.CurrentPage)
-@Html.HiddenFor(x => x.PageCount)
+@Html.HiddenFor(x => x.PaginationCurrentPage)
+@Html.HiddenFor(x => x.PaginationPageCount)
 
-<input id="Delta" type="hidden" value="5" />
+<input id="PaginationDelta" type="hidden" value="5" />
 <!--
-The field Delta is optional. Delta is the number of pages
+The field PaginationDelta is optional. Delta is the number of pages
 shown before and after the current page. The default value
 is 5. Below is a number of examples of pagination output
 where PageCount=20, Delta=5:
@@ -37,9 +37,9 @@ Ellipses are replaced by a drop down list when output.
     };
     function pagination_checkPage() {
         const myPagination = document.getElementById("myPagination");
-        const currentPage = document.getElementById("CurrentPage");
-        const pageCount = document.getElementById("PageCount");
-        const delta = document.getElementById("Delta");
+        const currentPage = document.getElementById("PaginationCurrentPage");
+        const pageCount = document.getElementById("PaginationPageCount");
+        const delta = document.getElementById("PaginationDelta");
         let err = "";
         if (!currentPage) err = "Unable to use pagination as the field 'CurrentPage' does not exist.";
         else if (!pageCount) err = "Unable to use pagination as the field 'PageCount' does not exist.";
@@ -52,7 +52,7 @@ Ellipses are replaced by a drop down list when output.
         return err.length === 0;
     }
     function pagination_get(currentPage, pageCount) {
-        const delta = document.getElementById("Delta") ? parseInt(document.getElementById("Delta").value) : 5;
+        const delta = document.getElementById("PaginationDelta") ? parseInt(document.getElementById("PaginationDelta").value) : 5;
         const separate = (a, b) => [a, ...({
             0: [],
             1: [b],
@@ -69,8 +69,8 @@ Ellipses are replaced by a drop down list when output.
         })
     }
     function pagination_populate() {
-        const currentPage = parseInt(document.getElementById("CurrentPage").value);
-        const pageCount = parseInt(document.getElementById("PageCount").value);
+        const currentPage = parseInt(document.getElementById("PaginationCurrentPage").value);
+        const pageCount = parseInt(document.getElementById("PaginationPageCount").value);
         let myPagination = document.getElementById("myPagination");
         myPagination.innerHTML = "";
         let pages = pagination_get(currentPage, pageCount);
