@@ -1,10 +1,6 @@
 <html>
     <body>
         <style>
-            .pagination-link {
-                text-decoration: none;
-                color: #0000ee;
-            }
             .pagination-current {
                 border: 1px solid #000;
                 padding: 0 2px;
@@ -55,32 +51,26 @@
                 let pages = pagination(currentPage, pageCount);
                 for (let i = 0; i < pages.length; i++) {
                     if (pages[i] !== '.') {
-                        if (pages[i] !== currentPage) {
+                        if (pages[i] !== currentPage)
                             myPagination.appendChild(getLink(pages[i]));
-                            myPagination.appendChild(getSpace());
-                        }
-                        else {
+                        else
                             myPagination.appendChild(getEmptyLink(pages[i]));
-                            myPagination.appendChild(getSpace());
-                        }
                     }
-                    else { 
+                    else
                         myPagination.appendChild(getSelect(pages[i-1]+1, pages[i+1]-1));
-                        myPagination.appendChild(getSpace());
-                    }
                 }
             }
             function getLink(page) {
                 let link = document.createElement("a");
                 link.setAttribute("href","#");
                 link.setAttribute("onclick", `navigate(${page})`);
-                link.setAttribute("class", "pagination-link");
+                link.setAttribute("style", "padding:0 3px;text-decoration:none;color:#0000ee;");
                 link.innerHTML = `${page}`;
                 return link;
             }
             function getEmptyLink(page) {
                 let link = document.createElement("span");
-                link.setAttribute("class", "pagination-current");
+                link.setAttribute("style", "padding:0 3px;border:1px solid #000;");
                 link.innerHTML = `${page}`;
                 return link;
             }
@@ -92,6 +82,7 @@
             function getSelect(minPage, maxPage) {
                 let sel = document.createElement("select");
                 sel.setAttribute("onchange", "navigate(this.value)");
+                sel.setAttribute("style", "margin:0 3px;");
                 let optDefault = document.createElement("option");
                 optDefault.value = 0;
                 optDefault.innerHTML = "...";
