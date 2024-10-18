@@ -75,11 +75,6 @@
                 link.innerHTML = `${page}`;
                 return link;
             }
-            function getSpace() {
-                let space = document.createElement("span");
-                space.innerHTML = "&nbsp;";
-                return space;
-            }
             function getSelect(minPage, maxPage) {
                 let sel = document.createElement("select");
                 sel.setAttribute("onchange", "navigate(this.value)");
