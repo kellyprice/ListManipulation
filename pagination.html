@@ -6,16 +6,32 @@
                 color: #0000ee;
             }
             .pagination-current {
-                font-weight: bold;
-                text-decoration: underline;
+                border: 1px solid #000;
+                padding: 0 2px;
             }
         </style>
         <script>
             window.onload = function() {
-                populatePagination(1, 20);
+                if (checkPage())
+                    populatePagination();
             };
+            function checkPage() {
+                const myPagination = document.getElementById("myPagination");
+                const currentPage = document.getElementById("CurrentPage");
+                const pageCount = document.getElementById("PageCount");
+                const delta = document.getElementById("Delta");
+                let err = "";
+                if (!currentPage) err = "Unable to use pagination as the field 'CurrentPage' does not exist.";
+                else if (!pageCount) err = "Unable to use pagination as the field 'PageCount' does not exist.";
+                else if (!Number.isInteger(parseInt(currentPage.value))) err = "Unable to use pagination as the value of 'CurrentPage' is not an integer.";
+                else if (parseInt(currentPage.value) < 1) err = "Unable to use pagination as the value of 'CurrentPage' is less than 1.";
+                else if (!Number.isInteger(parseInt(pageCount.value))) err = "Unable to use pagination as the value of 'PageCount' is not an integer.";
+                else if (delta && !Number.isInteger(parseInt(delta.value))) err = "Unable to use pagination as the value of 'Delta' is not an integer.";
+                myPagination.innerHTML = err;
+                return err.length === 0;
+            }
             function pagination(currentPage, pageCount) {
-                let delta = 5;
+                const delta = document.getElementById("Delta") ? parseInt(document.getElementById("Delta").value) : 5;
                 const separate = (a, b) => [a, ...({
                     0: [],
                     1: [b],
@@ -31,7 +47,9 @@
                     return [page]
                 })
             }     
-            function populatePagination(currentPage, pageCount) {
+            function populatePagination() {
+                const currentPage = parseInt(document.getElementById("CurrentPage").value);
+                const pageCount = parseInt(document.getElementById("PageCount").value);
                 let myPagination = document.getElementById("myPagination");
                 myPagination.innerHTML = "";
                 let pages = pagination(currentPage, pageCount);
@@ -87,9 +105,12 @@
                 return sel;
             }
             function navigate(page) {
-                populatePagination(parseInt(page), 20);
+                document.getElementById("CurrentPage").value = page;
+                populatePagination();
             }
         </script>
         <div id="myPagination"></div>
+        <input id="CurrentPage" type="hidden" value="1" />
+        <input id="PageCount" type="hidden" value="20" />
     </body>
 </html>
