@@ -122,7 +122,7 @@ public static async Task EnqueueMessage()
             await client.DisposeAsync();
         }
     }
-
+while deploying in azure, the build failed with this error: Parsing error(s): {"events":[{"level":"Informational","event":"ParsingXMLStarted","message":"Started parsing XML"},{"level":"Informational","event":"ParsingXMLComplete","message":"Completed parsing XML"},{"level":"Verbose","event":"WsdlImportRuleVerifyWadl11Schema","message":"WSDL validated against XML Schema"},{"level":"Informational","event":"WsdlPrecheckComplete","message":"Completed WSDL verification. WSDL is considered valid."},{"level":"Informational","event":"WsdlParsingStarted","message":"Service : Endpoint : "}]} (Code:ValidationError)
     Console.WriteLine("Press any key to end the application");
     Console.ReadKey();
 }
