@@ -1,165 +1,309 @@
-<?xml version="1.0" encoding="utf-8"?>
+# Yaml pipeline to build IdentityServer
+# This is used to check Azure Services are working ok in the NonProd subscription before deploying any further
+trigger: none
 
-<configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
-	<configBuilders xdt:Transform="InsertBefore(connectionStrings)">
-		<builders>
-			<add name="AzureAppConfig" endpoint="__ConfigBuilders.AppConfigurationUrl__" type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfiguration, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-			<add name="AzureKeyVault" vaultName="__ConfigBuilders.KeyVaultName__" type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-		</builders>
-	</configBuilders>
-	
-	<connectionStrings xdt:Transform="SetAttributes(configBuilders)" configBuilders="AzureKeyVault" >
-		<add name="BCEDatabase" connectionString="__ConnectionStrings.IdentityServerSecurityService.BceConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
-		<add name="IdentityServerDatabase" connectionString="__ConnectionStrings.IdentityServerSecurityService.IdentityServerConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
-		<add name="DevHubDatabase" connectionString="__ConnectionStrings.IdentityServerSecurityService.DevHubConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
-		<add name="Crm" connectionString="__ConnectionStrings.IdentityServerSecurityService.Crm__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
-		<!--<add name="ApplicationInsights" connectionString="__ConnectionStrings.IdentityServerSecurityService.ApplicationInsightsConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />-->
-	</connectionStrings>
+resources:
+  repositories:
+  - repository: IdentityServer
+    type: git
+    name: IdentityServer 
+    ref: ${{ variables.branchName }}
+    trigger: 
+      branches:
+        include:
+        - refs/heads/master
+        - releases/*
 
-	<appSettings xdt:Transform="SetAttributes(configBuilders)" configBuilders="Environment,AzureAppConfig">
-		<!--<add key="AzureAppConfig" value="__ConfigBuilders.AppConfigurationUrl__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)" />
-		<add key="AzureKeyVault" value="__ConfigBuilders.KeyVaultName__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)" />-->
-		<add key="profile" value="__AppSettings.IdentityServerSecurityService.Profile__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
-		<add key="crm:org-uri" value="__AppSettings.IdentityServerSecurityService.Crm:org-uri__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
-		<add key="crm:org-helper" value="__AppSettings.IdentityServerSecurityService.Crm:org-helper__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
-		<add key="UseDirectSmtp" value="__AppSettings.IdentityServerSecurityService.UseDirectSmtp__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
-		<add key="UseEmailDomainWhitelist" value="__AppSettings.IdentityServerSecurityService.UseEmailDomainWhitelist__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
-		<add key="FeatureToggleUseCloudCrm" value="__AppSettings.IdentityServerSecurityService.FeatureToggleUseCloudCrm__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
-	</appSettings>
+name: $(BuildDefinitionName)_$(date:yyyyMMdd)$(rev:.r)
 
-	<system.web>
-    <compilation xdt:Transform="RemoveAttributes(debug)" />
-  </system.web>
+variables:
+  # isMainBranch: True
+  # isReleaseBranch: True
+  # isMainOrReleaseBranch: True
+  # environmentPrefix: 'TESTING-'
 
-</configuration>
+  isMainBranch: $[eq(resources.repositories['IdentityServer'].ref, 'refs/heads/master')]
+  isReleaseBranch: $[startsWith(variables['Build.SourceBranch'], 'refs/heads/releases/')]
+  isMainOrReleaseBranch: $[or(eq(resources.repositories['IdentityServer'].ref, 'refs/heads/master'), startsWith(variables['Build.SourceBranch'], 'refs/heads/releases/'))]
+  environmentPrefix: ''
 
+  Pipeline.Azure.Subscription.NonProd: NonProd-Admin
+  Pipeline.Azure.Subscription.PreProd: PreProd-Admin
+  Pipeline.Azure.Subscription.Prod: Prod-Admin
 
+  Pipeline.Azure.ShortRegionCode: we
+  Pipeline.Azure.WebAppServiceType.WebApi: web-api
+  Pipeline.Azure.WebAppName: identityserver
 
-public static async Task Get()
-{
-    // the client that owns the connection and can be used to create senders and receivers
-    ServiceBusClient client;
+  Pipeline.Artifacts.BicepFolder: $(System.DefaultWorkingDirectory)\Infrastructure\Bicep
+  Pipeline.Artifacts.PowerShellFolder: $(System.DefaultWorkingDirectory)/Pipelines/PowerShell
+  Pipeline.Artifacts.ApplicationArtifactName: 'IdentityServerSecurityService' 
+  Pipeline.Artifacts.Name.IAC: 'IaC'
+  Pipeline.Artifacts.Category: Applications
 
-    // the processor that reads and processes messages from the queue
-    ServiceBusProcessor processor;
+  Application.BuildParameters.Solution: '**\*.sln'
+  Application.BuildParameters.BuildConfiguration: 'Release' 
+  Application.BuildParameters.BuildPlatform: 'any cpu'
 
-    // The Service Bus client types are safe to cache and use as a singleton for the lifetime
-    // of the application, which is best practice when messages are being published or read
-    // regularly.
-    //
-    // Set the transport type to AmqpWebSockets so that the ServiceBusClient uses port 443. 
-    // If you use the default AmqpTcp, make sure that ports 5671 and 5672 are open.
+  Azure.TemplateSpec.Subscription.NonProd: NonProd
+  Azure.TemplateSpec.Subscription.PreProd: PreProd
+  Azure.TemplateSpec.Subscription.Prod: Prod
+  
+  Azure.TemplateSpec.Location: WestEurope
+  Azure.TemplateSpec.ResourceGroupName: templateSpec-rg
+  Azure.TemplateSpec.Name: IdentityServer
+  
+stages:
 
-    // TODO: Replace the <NAMESPACE-CONNECTION-STRING> and <QUEUE-NAME> placeholders
-    var clientOptions = new ServiceBusClientOptions()
-    {
-        TransportType = ServiceBusTransportType.AmqpWebSockets
-    };
+- template: /Pipelines/Yaml/Shared/Templates/Stage Templates/stageTemplate-InitialiseListVariablesValidateBuildIaC.yml
+  parameters: 
+    pipelineAgentPool:       AzBuildAgents
+    templateSpecNamePrefix:  'IdentityServer'
+    templateSpecNamePostfix: 'PostDeployment'
+
+- stage: 'BuildApplication' 
+  displayName: 'Build Application'  
+  dependsOn: 'Initialise'
+  
+  jobs:
+  - job: Build 
+    continueOnError: false
+    workspace:
+      clean: all
+    pool:
+      name: AzBuildAgents
     
-    client = new ServiceBusClient("Endpoint=sb://kellytest.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=v4oJiRF5EHdlHKfLmX1WtB2smQ6mleEyc+ASbAe", clientOptions);
+    steps: 
+    - checkout: IdentityServer
+      clean: true
 
-    // create a processor that we can use to process the messages
-    // TODO: Replace the <QUEUE-NAME> placeholder
-    processor = client.CreateProcessor("kellytestq", new ServiceBusProcessorOptions());
+    - task: FileTransform@1
+      displayName: 'Transform *.Release.config to Web.Config' 
+      inputs:
+        folderPath: $(System.DefaultWorkingDirectory)/
+        enableXmlTransform: true
+        xmlTransformationRules: >-
+           -transform $(System.DefaultWorkingDirectory)\src\IdentityServer.Connect.Web\*.Release.config -xml $(System.DefaultWorkingDirectory)\src\IdentityServer.Connect.Web\web.config
+           -transform $(System.DefaultWorkingDirectory)\src\IdentityServer.SecurityService.Wcf\*.Release.config -xml $(System.DefaultWorkingDirectory)\src\IdentityServer.SecurityService.Wcf\web.config
+        fileType: xml
+    
+    - task: NuGetToolInstaller@1
+      displayName: 'Install latest version of NuGet'
+      inputs:
+        checkLatest: true
+       
+    - task: NuGetCommand@2
+      displayName: NuGet restore
+      inputs:
+        solution: $(Application.BuildParameters.Solution)
+        feedRestore: 655e1e6e-ceb4-4af4-985f-4c97d16d696e/80e6581d-c0c2-437a-993b-0b39f6e26e35
+    
+    - task: VSBuild@1
+      displayName: Build solution
+      inputs:
+        msbuildArgs: /p:WebPublishMethod=FileSystem  /p:OutDir=$(build.stagingDirectory)  /p:DeployIisAppPath=/
+        platform: $(Application.BuildParameters.BuildPlatform)
+        configuration: $(Application.BuildParameters.BuildConfiguration)
+        clean: true
 
-    try
-    {
-        // add handler to process messages
-        processor.ProcessMessageAsync += MessageHandler;
+    - task: VSTest@2
+      displayName: 'VsTest - Run tests for Solution'
+      inputs:
+        testAssemblyVer2: |
+          **\$(Application.BuildParameters.BuildConfiguration)\**\*UnitTests*.dll
+                  runInParallel: true
+        platform: $(Application.BuildParameters.BuildPlatform)
+        configuration: $(Application.BuildParameters.BuildConfiguration)
 
-        // add handler to process any errors
-        processor.ProcessErrorAsync += ErrorHandler;
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Application Artifact
+      #condition: and(succeeded(), eq(variables.isMasterOrReleaseBranch, true))
+      inputs:
+        PathtoPublish: $(Build.StagingDirectory)
+        ArtifactName: $(Pipeline.Artifacts.ApplicationArtifactName)
+        publishLocation: 'Container'
 
-        // start processing 
-        await processor.StartProcessingAsync();
+- stage: 'AppDeploymentDEVEnvironment'
+  displayName: 'App Deployment (Dev Environment)'
+  dependsOn: 
+  - Initialise
+  - BuildIaC
+  - BuildApplication
+  condition: and(succeeded(), eq(true, true))
+  variables:
+    TemplateSpecVersion: $[stageDependencies.Initialise.SetVersion.outputs['PSTemplateSpecVersion.Azure.TemplateSpec.Version'] ]
+    PartialSubscriptionId: d190
+  jobs:
+  - template: /Pipelines/Yaml/Shared/Templates/Job Templates/deployIACToAzure/jobTemplate-publishTemplateSpecToAzure.yml
+    parameters:
+       jobName: PublishTemplateSpec_IdentityServerPostDeployment
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       artifact: $(Pipeline.Artifacts.Name.IAC)
+       templateSpecFileName: $(System.ArtifactsDirectory)\$(Pipeline.Artifacts.Name.IAC)\Json\IdentityServer-PostDeployment.json
+       templateSpecName: IdentityServer-PostDeployment
+       templateSpecVersion: $(TemplateSpecVersion)
+       templateSpecDescription: Updates a subscription so it contains the resource groups and resources for the IdentityServer-PostDeployment script
 
-        Console.WriteLine("Wait for a minute and then press any key to end the processing");
-        Console.ReadKey();
+  - template: /Pipelines/Yaml/Applications/IdentityServer/Job Templates/jobTemplate-deployApplicationToAzure.yml
+    parameters:
+       jobName: Deploy_Application_to_Dev_environment
+       namePrefix: "Dev_"
+       AppConfigurationUrl: https://identityserver-dev-d190-appcfg.azconfig.io
+       KeyVaultName: idserver-dev-we-d190-kv
+       KeyVaultEndpoint: https://idserver-dev-we-d190-kv.vault.azure.net/
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       environment: dev
+       pipelineEnvironment: $(environmentPrefix)Azure-IdentityServer-Dev
+       deploymentResourceGroupName: identityserver-nonprod-dev-we-rg
+       dependsOn:  
+         - PublishTemplateSpec_IdentityServerPostDeployment
 
-        // stop processing 
-        Console.WriteLine("\nStopping the receiver...");
-        await processor.StopProcessingAsync();
-        Console.WriteLine("Stopped receiving messages");
-    }
-    finally
-    {
-        // Calling DisposeAsync on client types is required to ensure that network
-        // resources and other unmanaged objects are properly cleaned up.
-        await processor.DisposeAsync();
-        await client.DisposeAsync();
-    }
-}
+- stage: 'AppDeploymentUAT2'
+  displayName: 'App Deployment (UAT2)'
+  dependsOn: 
+  - Initialise
+  - BuildIaC
+  - BuildApplication
+  condition: and(succeeded(), eq(variables.isMainBranch, true))
+  variables:
+    TemplateSpecVersion: $[stageDependencies.Initialise.SetVersion.outputs['PSTemplateSpecVersion.Azure.TemplateSpec.Version'] ]
+    PartialSubscriptionId: d190
+  jobs:
+  - template: /Pipelines/Yaml/Shared/Templates/Job Templates/deployIACToAzure/jobTemplate-publishTemplateSpecToAzure.yml
+    parameters:
+       jobName: PublishTemplateSpec_IdentityServerPostDeployment
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       artifact: $(Pipeline.Artifacts.Name.IAC)
+       templateSpecFileName: $(System.ArtifactsDirectory)\$(Pipeline.Artifacts.Name.IAC)\Json\IdentityServer-PostDeployment.json
+       templateSpecName: IdentityServer-PostDeployment
+       templateSpecVersion: $(TemplateSpecVersion)
+       templateSpecDescription: Updates a subscription so it contains the resource groups and resources for the IdentityServer-PostDeployment script
 
-static async Task MessageHandler(ProcessMessageEventArgs args)
-{
-    string body = args.Message.Body.ToString();
-    Console.WriteLine($"Received: {body}");
+  - template: /Pipelines/Yaml/Applications/IdentityServer/Job Templates/jobTemplate-deployApplicationToAzure.yml
+    parameters:
+       jobName: Deploy_Application_to_Uat2_environment
+       namePrefix: "UAT2_"
+       AppConfigurationUrl: https://identityserver-uat2-d190-appcfg.azconfig.io
+       KeyVaultName: idserver-uat2-we-d190-kv
+       KeyVaultEndpoint: https://idserver-uat2-we-d190-kv.vault.azure.net/
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       environment: uat2
+       pipelineEnvironment: $(environmentPrefix)Azure-IdentityServer-UAT2
+       deploymentResourceGroupName: identityserver-nonprod-uat2-we-rg
+       dependsOn:  
+         - PublishTemplateSpec_IdentityServerPostDeployment
 
-    // complete the message. message is deleted from the queue. 
-    await args.CompleteMessageAsync(args.Message);
-}
+- stage: 'AppDeploymentUAT3'
+  displayName: 'App Deployment (UAT3)'
+  dependsOn: 
+  - Initialise
+  - BuildIaC
+  - BuildApplication
+  condition: and(succeeded(), eq(variables.isMainBranch, true))
+  variables:
+    TemplateSpecVersion: $[stageDependencies.Initialise.SetVersion.outputs['PSTemplateSpecVersion.Azure.TemplateSpec.Version'] ]
+    PartialSubscriptionId: d190
+  jobs:
+  - template: /Pipelines/Yaml/Shared/Templates/Job Templates/deployIACToAzure/jobTemplate-publishTemplateSpecToAzure.yml
+    parameters:
+       jobName: PublishTemplateSpec_IdentityServerPostDeployment
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       artifact: $(Pipeline.Artifacts.Name.IAC)
+       templateSpecFileName: $(System.ArtifactsDirectory)\$(Pipeline.Artifacts.Name.IAC)\Json\IdentityServer-PostDeployment.json
+       templateSpecName: IdentityServer-PostDeployment
+       templateSpecVersion: $(TemplateSpecVersion)
+       templateSpecDescription: Updates a subscription so it contains the resource groups and resources for the IdentityServer-PostDeployment script
 
-// handle any errors when receiving messages
-static Task ErrorHandler(ProcessErrorEventArgs args)
-{
-    Console.WriteLine(args.Exception.ToString());
-    return Task.CompletedTask;
-}
+  - template: /Pipelines/Yaml/Applications/IdentityServer/Job Templates/jobTemplate-deployApplicationToAzure.yml
+    parameters:
+       jobName: Deploy_Application_to_Uat3_environment
+       namePrefix: "UAT3_"
+       AppConfigurationUrl: https://identityserver-uat3-d190-appcfg.azconfig.io
+       KeyVaultName: idserver-uat3-we-d190-kv
+       KeyVaultEndpoint: https://idserver-uat3-we-d190-kv.vault.azure.net/
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       environment: uat3
+       pipelineEnvironment: $(environmentPrefix)Azure-IdentityServer-UAT3
+       deploymentResourceGroupName: identityserver-nonprod-uat3-we-rg
+       dependsOn:  
+         - PublishTemplateSpec_IdentityServerPostDeployment
 
-public static async Task EnqueueMessage()
-{
-    ServiceBusClient client;
+- stage: 'AppDeploymentUAT4'
+  displayName: 'App Deployment (UAT4)'
+  dependsOn: 
+  - Initialise
+  - BuildIaC
+  - BuildApplication
+  condition: and(succeeded(), eq(true, true))
+  variables:
+    TemplateSpecVersion: $[stageDependencies.Initialise.SetVersion.outputs['PSTemplateSpecVersion.Azure.TemplateSpec.Version'] ]
+    PartialSubscriptionId: d190
+  jobs:
+  - template: /Pipelines/Yaml/Shared/Templates/Job Templates/deployIACToAzure/jobTemplate-publishTemplateSpecToAzure.yml
+    parameters:
+       jobName: PublishTemplateSpec_IdentityServerPostDeployment
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       artifact: $(Pipeline.Artifacts.Name.IAC)
+       templateSpecFileName: $(System.ArtifactsDirectory)\$(Pipeline.Artifacts.Name.IAC)\Json\IdentityServer-PostDeployment.json
+       templateSpecName: IdentityServer-PostDeployment
+       templateSpecVersion: $(TemplateSpecVersion)
+       templateSpecDescription: Updates a subscription so it contains the resource groups and resources for the IdentityServer-PostDeployment script
 
-    // the sender used to publish messages to the queue
-    ServiceBusSender sender;
+  - template: /Pipelines/Yaml/Applications/IdentityServer/Job Templates/jobTemplate-deployApplicationToAzure.yml
+    parameters:
+       jobName: Deploy_Application_to_Uat4_environment
+       namePrefix: "UAT4_"
+       AppConfigurationUrl: https://identityserver-uat4-d190-appcfg.azconfig.io
+       KeyVaultName: idserver-uat4-we-d190-kv
+       KeyVaultEndpoint: https://idserver-uat4-we-d190-kv.vault.azure.net/
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       environment: uat4
+       pipelineEnvironment: $(environmentPrefix)Azure-IdentityServer-UAT4
+       deploymentResourceGroupName: identityserver-nonprod-uat4-we-rg
+       dependsOn:  
+         - PublishTemplateSpec_IdentityServerPostDeployment
 
-    // number of messages to be sent to the queue
-    const int numOfMessages = 3;
+- stage: 'AppDeploymentUAT1'
+  displayName: 'App Deployment (UAT1)'
+  dependsOn: 
+  - Initialise
+  - BuildIaC
+  - BuildApplication
+  condition: and(succeeded(), eq(variables.isReleaseBranch, true))
+  variables:
+    TemplateSpecVersion: $[stageDependencies.Initialise.SetVersion.outputs['PSTemplateSpecVersion.Azure.TemplateSpec.Version'] ]
+    PartialSubscriptionId: d190
+  jobs:
+  - template: /Pipelines/Yaml/Shared/Templates/Job Templates/deployIACToAzure/jobTemplate-publishTemplateSpecToAzure.yml
+    parameters:
+       jobName: PublishTemplateSpec_IdentityServerPostDeployment
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       artifact: $(Pipeline.Artifacts.Name.IAC)
+       templateSpecFileName: $(System.ArtifactsDirectory)\$(Pipeline.Artifacts.Name.IAC)\Json\IdentityServer-PostDeployment.json
+       templateSpecName: IdentityServer-PostDeployment
+       templateSpecVersion: $(TemplateSpecVersion)
+       templateSpecDescription: Updates a subscription so it contains the resource groups and resources for the IdentityServer-PostDeployment script
 
-    // The Service Bus client types are safe to cache and use as a singleton for the lifetime
-    // of the application, which is best practice when messages are being published or read
-    // regularly.
-    //
-    // set the transport type to AmqpWebSockets so that the ServiceBusClient uses the port 443. 
-    // If you use the default AmqpTcp, you will need to make sure that the ports 5671 and 5672 are open
-
-    // TODO: Replace the <NAMESPACE-CONNECTION-STRING> and <QUEUE-NAME> placeholders
-    var clientOptions = new ServiceBusClientOptions()
-    {
-        TransportType = ServiceBusTransportType.AmqpWebSockets
-    };
-
-    client = new ServiceBusClient("Endpoint=sb://kellytest.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=v4oJiRF5EHdlHKfLmX1WtB2smQ6mleEyc+ASbAe", clientOptions);
-    sender = client.CreateSender("kellytestq");
-
-    // create a batch 
-    using (ServiceBusMessageBatch messageBatch = await sender.CreateMessageBatchAsync())
-    {
-        for (int i = 1; i <= numOfMessages; i++)
-        {
-            // try adding a message to the batch
-            if (!messageBatch.TryAddMessage(new ServiceBusMessage($"Message {i}")))
-            {
-                // if it is too large for the batch
-                throw new Exception($"The message {i} is too large to fit in the batch.");
-            }
-        }
-
-        try
-        {
-            // Use the producer client to send the batch of messages to the Service Bus queue
-            await sender.SendMessagesAsync(messageBatch);
-            Console.WriteLine($"A batch of {numOfMessages} messages has been published to the queue.");
-        }
-        finally
-        {
-            // Calling DisposeAsync on client types is required to ensure that network
-            // resources and other unmanaged objects are properly cleaned up.
-            await sender.DisposeAsync();
-            await client.DisposeAsync();
-        }
-    }
-while deploying in azure, the build failed with this error: Parsing error(s): {"events":[{"level":"Informational","event":"ParsingXMLStarted","message":"Started parsing XML"},{"level":"Informational","event":"ParsingXMLComplete","message":"Completed parsing XML"},{"level":"Verbose","event":"WsdlImportRuleVerifyWadl11Schema","message":"WSDL validated against XML Schema"},{"level":"Informational","event":"WsdlPrecheckComplete","message":"Completed WSDL verification. WSDL is considered valid."},{"level":"Informational","event":"WsdlParsingStarted","message":"Service : Endpoint : "}]} (Code:ValidationError)
-    Console.WriteLine("Press any key to end the application");
-    Console.ReadKey();
-}
+  - template: /Pipelines/Yaml/Applications/IdentityServer/Job Templates/jobTemplate-deployApplicationToAzure.yml
+    parameters:
+       jobName: Deploy_Application_to_Uat1_environment
+       namePrefix: "UAT1_"
+       AppConfigurationUrl: https://identityserver-uat1-d190-appcfg.azconfig.io
+       KeyVaultName: idserver-uat1-we-d190-kv
+       KeyVaultEndpoint: https://idserver-uat1-we-d190-kv.vault.azure.net/
+       pipelineAgentPool: AzNonProdWestEuropeReleaseAgents
+       azureSubscriptionServicePrinciple: $(Pipeline.Azure.Subscription.NonProd)
+       environment: uat1
+       pipelineEnvironment: $(environmentPrefix)Azure-IdentityServer-UAT1
+       deploymentResourceGroupName: identityserver-nonprod-uat4-we-rg
+       dependsOn:  
+         - PublishTemplateSpec_IdentityServerPostDeployment
