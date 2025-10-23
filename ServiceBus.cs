@@ -1,3 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<configuration xmlns:xdt="http://schemas.microsoft.com/XML-Document-Transform">
+	<configBuilders xdt:Transform="InsertBefore(connectionStrings)">
+		<builders>
+			<add name="AzureAppConfig" endpoint="__ConfigBuilders.AppConfigurationUrl__" type="Microsoft.Configuration.ConfigurationBuilders.AzureAppConfigurationBuilder, Microsoft.Configuration.ConfigurationBuilders.AzureAppConfiguration, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
+			<add name="AzureKeyVault" vaultName="__ConfigBuilders.KeyVaultName__" type="Microsoft.Configuration.ConfigurationBuilders.AzureKeyVaultConfigBuilder, Microsoft.Configuration.ConfigurationBuilders.Azure, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
+		</builders>
+	</configBuilders>
+	
+	<connectionStrings xdt:Transform="SetAttributes(configBuilders)" configBuilders="AzureKeyVault" >
+		<add name="BCEDatabase" connectionString="__ConnectionStrings.IdentityServerSecurityService.BceConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
+		<add name="IdentityServerDatabase" connectionString="__ConnectionStrings.IdentityServerSecurityService.IdentityServerConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
+		<add name="DevHubDatabase" connectionString="__ConnectionStrings.IdentityServerSecurityService.DevHubConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
+		<add name="Crm" connectionString="__ConnectionStrings.IdentityServerSecurityService.Crm__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />
+		<!--<add name="ApplicationInsights" connectionString="__ConnectionStrings.IdentityServerSecurityService.ApplicationInsightsConnectionString__" xdt:Transform="SetAttributes" xdt:Locator="Match(name)" />-->
+	</connectionStrings>
+
+	<appSettings xdt:Transform="SetAttributes(configBuilders)" configBuilders="Environment,AzureAppConfig">
+		<!--<add key="AzureAppConfig" value="__ConfigBuilders.AppConfigurationUrl__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)" />
+		<add key="AzureKeyVault" value="__ConfigBuilders.KeyVaultName__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)" />-->
+		<add key="profile" value="__AppSettings.IdentityServerSecurityService.Profile__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
+		<add key="crm:org-uri" value="__AppSettings.IdentityServerSecurityService.Crm:org-uri__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
+		<add key="crm:org-helper" value="__AppSettings.IdentityServerSecurityService.Crm:org-helper__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
+		<add key="UseDirectSmtp" value="__AppSettings.IdentityServerSecurityService.UseDirectSmtp__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
+		<add key="UseEmailDomainWhitelist" value="__AppSettings.IdentityServerSecurityService.UseEmailDomainWhitelist__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
+		<add key="FeatureToggleUseCloudCrm" value="__AppSettings.IdentityServerSecurityService.FeatureToggleUseCloudCrm__" xdt:Transform="SetAttributes" xdt:Locator="Match(key)"/>
+	</appSettings>
+
+	<system.web>
+    <compilation xdt:Transform="RemoveAttributes(debug)" />
+  </system.web>
+
+</configuration>
+
+
+
 public static async Task Get()
 {
     // the client that owns the connection and can be used to create senders and receivers
